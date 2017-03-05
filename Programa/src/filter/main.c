@@ -5,7 +5,7 @@
 /** Libera los recursos asociados a una imagen */
 void img_destroy(Image* img)
 {
-	/* TODO Liberar la memoria */
+	/* TODO: Liberar la memoria */
 }
 
 int main(int argc, char *argv[])
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	char* input_file = argv[1];
 	Image* img = img_png_read_from_file(input_file);
 
-	/** TODO: Leer el kernel a partir del archivo */
+	/* TODO: Leer el kernel a partir del archivo */
 	char* kernel_file = argv[2];
 
 	/* TODO: Procesar la imagen */
