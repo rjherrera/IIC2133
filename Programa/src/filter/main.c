@@ -11,7 +11,7 @@ void img_destroy(Image* img)
 int main(int argc, char *argv[])
 {
 	/* El programa recibe 3 parametros */
-  if(argc != 4)
+	if(argc != 4)
 	{
 		printf("Modo de uso: %s <input.png> <kernel.txt> <output.png>\n", argv[0]);
 		printf("\t<input.png> es la imagen a filtrar\n");
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
 	/* Leemos la imagen a partir del archivo */
 	char* input_file = argv[1];
-  Image* img = img_png_read_from_file(input_file);
+	Image* img = img_png_read_from_file(input_file);
 
 	/** TODO: Leer el kernel a partir del archivo */
 	char* kernel_file = argv[2];
@@ -44,10 +44,10 @@ int main(int argc, char *argv[])
 
 	/* Guardamos la imagen como un archivo png */
 	char* output_file = argv[3];
-  img_png_write_to_file (img, output_file);
+	img_png_write_to_file (img, output_file);
 
 	/* Liberamos los recursos asociados a la imagen */
 	img_destroy(img);
 
-  return 0;
+	return 0;
 }
