@@ -36,9 +36,9 @@ int main(int argc, char *argv[])
 	{
 		for(int col = 0; col < img -> width; col++)
 		{
-			img -> pixels[row][col].R = 255 - img -> pixels[row][col].R;
-			img -> pixels[row][col].G = 255 - img -> pixels[row][col].G;
-			img -> pixels[row][col].B = 255 - img -> pixels[row][col].B;
+			img -> pixels[row][col].R = 1 - img -> pixels[row][col].R;
+			img -> pixels[row][col].G = 1 - img -> pixels[row][col].G;
+			img -> pixels[row][col].B = 1 - img -> pixels[row][col].B;
 		}
 	}
 

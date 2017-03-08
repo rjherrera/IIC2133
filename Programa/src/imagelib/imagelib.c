@@ -2,11 +2,9 @@
 * Basado en código de ejemplo para libpng
 * https://gist.github.com/niw/5963798
 */
-
-
-
 #include "imagelib.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <png.h>
@@ -75,9 +73,9 @@ Image* img_png_read_from_file (char* filename)
 		for(int col = 0; col < width; col++)
 		{
 			uint8_t* px = &(row_pointers[row][col * 4]);
-			img -> pixels[row][col].R = px[0];
-			img -> pixels[row][col].G = px[1];
-			img -> pixels[row][col].B = px[2];
+			img -> pixels[row][col].R = ((float)(px[0]))/255.f;
+			img -> pixels[row][col].G = ((float)(px[1]))/255.f;
+			img -> pixels[row][col].B = ((float)(px[2]))/255.f;
 		}
 		free(row_pointers[row]);
 	}
@@ -129,13 +127,12 @@ void img_png_write_to_file(Image* img, char* filename)
 		for(int col = 0; col < img -> width; col++)
 		{
 			uint8_t* px = &(row_pointers[row][col * 4]);
-			px[0] = img -> pixels[row][col].R;
-			px[1] = img -> pixels[row][col].G;
-			px[2] = img -> pixels[row][col].B;
+			px[0] = (uint8_t)(img -> pixels[row][col].R * 255.f);
+			px[1] = (uint8_t)(img -> pixels[row][col].G * 255.f);
+			px[2] = (uint8_t)(img -> pixels[row][col].B * 255.f);
 			px[3] = 255;
 		}
   }
-
 
   png_write_image(png, row_pointers);
   png_write_end(png, NULL);

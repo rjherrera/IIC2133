@@ -1,16 +1,14 @@
 #ifndef T0_LIB_IMAGE
 #define T0_LIB_IMAGE
 
-#include <stdint.h>
-
 struct color
 {
 	/** Canal rojo */
-	uint8_t R;
+	float R;
 	/** Canal verde */
-	uint8_t G;
+	float G;
 	/** Canal azul */
-	uint8_t B;
+	float B;
 };
 /** Representa un color en RGB */
 typedef struct color Color;
@@ -20,9 +18,9 @@ struct image
 	/** Matriz de colores que corresponde a la imagen */
 	Color** pixels;
 	/** Ancho de la imagen */
-	uint16_t width;
+	int width;
 	/** Alto de la imagen */
-	uint16_t height;
+	int height;
 };
 /** Representa una imagen RGB como una matriz de colores */
 typedef struct image Image;
