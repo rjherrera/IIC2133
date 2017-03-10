@@ -31,3 +31,8 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Especifico de esta tarea
+
+*.png
+Programa/filter
