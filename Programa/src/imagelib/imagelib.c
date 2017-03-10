@@ -8,6 +8,44 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <png.h>
+#include <math.h>
+
+static void img_normalize(Image* img)
+{
+	double max_R = -INFINITY;
+	double max_G = -INFINITY;
+	double max_B = -INFINITY;
+	double min_R = +INFINITY;
+	double min_G = +INFINITY;
+	double min_B = +INFINITY;
+
+	for(int row = 0; row < img -> height; row++)
+	{
+		for(int col = 0; col < img -> width; col++)
+		{
+			Color c = img -> pixels[row][col];
+
+			max_R = fmax(c.R, max_R);
+			max_G = fmax(c.G, max_G);
+			max_B = fmax(c.B, max_B);
+			min_R = fmin(c.R, min_R);
+			min_G = fmin(c.G, min_G);
+			min_B = fmin(c.B, min_B);
+		}
+	}
+
+	for(int row = 0; row < img -> height; row++)
+	{
+		for(int col = 0; col < img -> width; col++)
+		{
+			Color* c = &(img -> pixels[row][col]);
+
+			c -> R = (c -> R - min_R) / max_R;
+			c -> G = (c -> G - min_G) / max_G;
+			c -> B = (c -> B - min_B) / max_B;
+		}
+	}
+}
 
 /** Lee un archivo .png y entrega la imagen */
 Image* img_png_read_from_file (char* filename)
@@ -94,6 +132,8 @@ Image* img_png_read_from_file (char* filename)
 /** Escribe el contenido de una imagen como archivo .png */
 void img_png_write_to_file(Image* img, char* filename)
 {
+	img_normalize(img);
+
 	FILE *fp = fopen(filename, "wb");
   if(!fp) abort();
 
