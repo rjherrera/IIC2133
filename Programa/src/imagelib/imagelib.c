@@ -40,9 +40,9 @@ static void img_normalize(Image* img)
 		{
 			Color* c = &(img -> pixels[row][col]);
 
-			c -> R = (c -> R - min_R) / max_R;
-			c -> G = (c -> G - min_G) / max_G;
-			c -> B = (c -> B - min_B) / max_B;
+			if(max_R - min_R) c -> R = (c -> R - min_R) / (max_R - min_R);
+            if(max_G - min_G) c -> G = (c -> G - min_G) / (max_G - min_G);
+            if(max_B - min_B) c -> B = (c -> B - min_B) / (max_B - min_B);
 		}
 	}
 }
