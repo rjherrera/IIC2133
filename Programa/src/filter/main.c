@@ -93,5 +93,11 @@ int main(int argc, char *argv[])
 	img_destroy(img);
 	img_destroy(new_img);
 
+	/* Libero kernel */
+	for (int row = 0; row < kernel_rows; row++) {
+		free(kernel[row]);
+	}
+	free(kernel);
+
 	return 0;
 }
