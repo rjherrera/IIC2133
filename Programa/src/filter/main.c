@@ -42,26 +42,18 @@ int main(int argc, char *argv[])
 	fscanf(file, "%d", &kernel_rows);
     fscanf(file, "%d", &kernel_cols);
 
-    float kernel[kernel_rows][kernel_cols];
-    int i, j;
-    for (i = 0; i < kernel_rows; i++) {
-        for (j = 0; j < kernel_cols; j++) {
+    float** kernel = malloc(kernel_rows * sizeof(float*));
+    // float kernel[kernel_rows][kernel_cols]; sin mallocs
+    for (int i = 0; i < kernel_rows; i++) {
+        kernel[i] = malloc(kernel_cols * sizeof(float));
+        for (int j = 0; j < kernel_cols; j++) {
             fscanf(file, "%f", &data);
             kernel[i][j] = data;
         }
     }
 
-    // imprimir matriz
-    // printf("El kernel del filtro a aplicar es:\n");
-    // for (i = 0; i < kernel_rows; i++) {
-    // 	printf("|");
-    //     for (j = 0; j < kernel_cols; j++) {
-    //         printf("%f ", kernel[i][j]);
-    //     }
-    //     printf("|\n");
-    // }
-
 	fclose(file);
+
 	/* TODO: Procesar la imagen */
 
 	Image* new_img = img_png_read_from_file(input_file);
