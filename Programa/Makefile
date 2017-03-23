@@ -7,7 +7,9 @@
 ###############################################################################
 
 # El compilador a usar: Gnu C Compiler, Standard 2011 with GNU extensions
-CC=gcc -std=gnu11
+# CC=gcc -std=gnu11
+CC=gcc -std=gnu11 -I/usr/local/include -L/usr/local/lib
+
 
 ###############################################################################
 # OPTIMIZACIÓN POR COMPILADOR (descomenta el que necesites, comenta el otro)  #
