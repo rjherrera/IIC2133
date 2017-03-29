@@ -31,3 +31,9 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Especifico de esta tarea
+
+*.png
+Programa/restore
+Programa/beholder
