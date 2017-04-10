@@ -37,3 +37,7 @@
 *.png
 Programa/restore
 Programa/beholder
+
+# macOS Files
+.DS_Store
+._.DS_Store
