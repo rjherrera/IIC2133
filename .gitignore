@@ -37,6 +37,7 @@
 *.png
 Programa/restore
 Programa/beholder
+# Programa/tests/outputs
 
 # macOS and OSX specific files
 .DS_Store
