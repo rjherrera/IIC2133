@@ -31,3 +31,10 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Especificos de esta tarea
+Programa/midimanager
+Programa/distill
+Programa/obj
+Programa/*.mid
+Programa/*.txt
