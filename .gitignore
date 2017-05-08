@@ -31,3 +31,7 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Especifico de esta tarea
+Programa/beholder
+Programa/obj
