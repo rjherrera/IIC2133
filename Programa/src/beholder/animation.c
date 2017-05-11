@@ -13,72 +13,57 @@
 /** El thread encargado de actualizar el contenido de la ventana */
 static pthread_t* update_thread;
 
-/** Representa un sector rectangular de la ventana */
-struct rectarea
+/** Intercambia los valores de dos variables a y b */
+void double_swap(double* a, double* b)
 {
-	/** Componente X de la esquina superior izquierda de esta área */
-	double sx;
-	/** Componente Y de la esquina superior izquierda de esta área */
-	double sy;
-	/** Ancho de esta área */
-	double width;
-	/** Alto de esta área */
-	double height;
-};
+	double aux = *a;
+	*a = *b;
+	*b = aux;
+}
 
-/** Representa un sector rectangular de la ventana */
-typedef struct rectarea Area;
-
-Area get_draw_area(Content* cont, bool row, uint8_t index, int8_t signum)
+/** Anima cuadro por cuadro el desplazamiento de una fila o columna */
+void animate_shift(GtkWidget* canvas, Content* cont, uint8_t index, char code)
 {
-	Area a;
+	/* La animacion es de el movimiento de una fila? */
+	bool row;
+	/* Hacia que lado es el desplazamiento? (El eje Y crece hacia abajo) */
+	int8_t signum;
+	/* La funcion de desplazamiento correspondiente para el puzzle */
+	shift_fn_t shift_fn;
+
+	/* Todo eso está definido por la dirección del movimiento */
+	switch(code)
+	{
+		/* Right */
+		case 'R': row = true;  signum = 1;  shift_fn = puzzle_shift_right; break;
+		/* Up */
+		case 'U': row = false; signum = -1; shift_fn = puzzle_shift_up;    break;
+		/* Left */
+		case 'L': row = true;  signum = -1; shift_fn = puzzle_shift_left;  break;
+		/* Down */
+		case 'D': row = false; signum = 1;  shift_fn = puzzle_shift_down;  break;
+		default : abort();
+	}
+
+	/* Bounding rectangle of affected area */
+	uint8_t len = row ? cont -> puz -> width : cont -> puz -> height;
+
+	double start_x = cont -> cell_size / 2 + cont -> cell_size * index;
+	double start_y = 0;
+	double width = cont -> cell_size;
+	double height = (len + 1) * cont -> cell_size;
 
 	if(row)
 	{
-		a.sy = cont -> cell_size / 2 + cont -> cell_size * index;
-		a.height = cont -> cell_size;
-		a.width = (cont -> puz -> width + 0.5) * cont -> cell_size;
-
-		if(signum > 0)
-		{
-			/* Shift Right */
-			a.sx = 0;
-		}
-		else
-		{
-			/* Shift Left */
-			a.sx = cont -> cell_size / 2;
-		}
-	}
-	else
-	{
-		a.sx = cont -> cell_size / 2 + cont -> cell_size * index;
-		a.width = cont -> cell_size;
-		a.height = (cont -> puz -> height + 0.5) * cont -> cell_size;
-
-		if(signum > 0)
-		{
-			/* Shift down */
-			a.sy = 0;
-		}
-		else
-		{
-			/* Shift up */
-			a.sy = cont -> cell_size / 2;
-		}
+		double_swap(&start_x, &start_y);
+		double_swap(&width, &height);
 	}
 
-
-	return a;
-}
-
-void animate_shift(GtkWidget* canvas, Content* cont, bool row, uint8_t index, int8_t signum, shift_fn_t shift_fn)
-{
+	/* Animation parameters */
 	double frames = TOTALTIME / TIMESTEP;
 	double delta = cont -> cell_size / frames;
 
-	Area a = get_draw_area(cont, row, index, signum);
-
+	/* Animation itself */
 	for(int i = 0; i < frames; i++)
 	{
 		if(row)
@@ -90,7 +75,7 @@ void animate_shift(GtkWidget* canvas, Content* cont, bool row, uint8_t index, in
 			cont -> col_offset[index] += signum*delta;
 		}
 
-		gtk_widget_queue_draw_area(canvas,a.sx,a.sy,a.width,a.height);
+		gtk_widget_queue_draw_area(canvas, start_x, start_y, width, height);
 		usleep(TIMESTEP * 1000);
 	}
 	if(row)
@@ -103,7 +88,6 @@ void animate_shift(GtkWidget* canvas, Content* cont, bool row, uint8_t index, in
 	}
 
 	shift_fn(cont -> puz, index);
-	// gtk_widget_queue_draw_area(canvas,a.sx,a.sy,a.width,a.height);
 	gtk_widget_queue_draw(canvas);
 }
 
@@ -116,36 +100,20 @@ void* update(void* ptr)
 	Content* cont = param[1];
 	free(param);
 
-	shift_fn_t fns[4] =
-	{
-		puzzle_shift_right,
-		puzzle_shift_left,
-		puzzle_shift_up,
-		puzzle_shift_down
-	};
-
-	int8_t signums[4] =
-	{
-		1,
-		-1,
-		-1,
-		1
-	};
-
-	bool rowicity[4] =
-	{
-		true,
-		true,
-		false,
-		false
-	};
-
 	uint8_t range[4] =
 	{
 		cont -> puz -> height,
-		cont -> puz -> height,
 		cont -> puz -> width,
+		cont -> puz -> height,
 		cont -> puz -> width
+	};
+
+	char codes[4] =
+	{
+		'R',
+		'U',
+		'L',
+		'D'
 	};
 
 
@@ -156,13 +124,10 @@ void* update(void* ptr)
 
 	while(true)
 	{
-
-
-
 		int fn = rand() % 4;
 		uint8_t index = rand() % range[fn];
 
-		animate_shift(canvas, cont, rowicity[fn], index, signums[fn], fns[fn]);
+		animate_shift(canvas, cont, index, codes[fn]);
 
 		usleep((TOTALTIME) * 1000);
 	}
