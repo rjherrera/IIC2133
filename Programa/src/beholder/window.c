@@ -51,7 +51,7 @@ void window_create(Content* cont)
 
 	/* Ligar eventos */
   g_signal_connect(canvas, "draw", G_CALLBACK(draw), cont);
-  g_signal_connect(canvas, "realize", G_CALLBACK(animation_init), cont -> puz);
+  g_signal_connect(canvas, "realize", G_CALLBACK(animation_init), cont);
 
 	/* Meter canvas a la ventana */
   gtk_container_add(GTK_CONTAINER(window), canvas);
