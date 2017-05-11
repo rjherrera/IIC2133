@@ -152,8 +152,16 @@ bool canvas_draw(cairo_t* cr, Content* cont)
 
       double sx = cont -> cell_size;
       double sy = cont -> cell_size;
-      double cx = sx + col * cont -> cell_size + cont -> row_offset[r];
-      double cy = sy + row * cont -> cell_size + cont -> col_offset[c];
+      double cx = sx + col * cont -> cell_size;
+			double cy = sy + row * cont -> cell_size;
+			if(cont -> mode == ROW && cont -> index == row)
+			{
+				cx += cont -> offset;
+			}
+			else if(cont -> mode == COL && cont -> index == col)
+			{
+				cy += cont -> offset;
+			}
 			Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
       draw_block(cr, color, cx, cy, cont -> cell_size);
     }
@@ -165,21 +173,20 @@ bool canvas_draw(cairo_t* cr, Content* cont)
 	/* Dibuja las flechas */
 	for(int col = 0; col < cont -> puz -> width; col++)
   {
-		Color tc = cont -> col_offset[col] > 0 ? PRS : WTE;
-		Color bc = cont -> col_offset[col] < 0 ? PRS : WTE;
-		
+		Color tc = cont -> mode == COL && cont -> index == col && cont -> offset > 0 ? PRS : WTE;
+		Color bc = cont -> mode == COL && cont -> index == col && cont -> offset < 0 ? PRS : WTE;
+
 		draw_top_arrow(cr, tc, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
 		draw_bottom_arrow(cr, bc, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
   }
 
 	for(int row = 0; row < cont -> puz -> height; row++)
   {
-		Color lc = cont -> row_offset[row] > 0 ? PRS : WTE;
-		Color rc = cont -> row_offset[row] < 0 ? PRS : WTE;
+		Color lc = cont -> mode == ROW && cont -> index == row && cont -> offset > 0 ? PRS : WTE;
+		Color rc = cont -> mode == ROW && cont -> index == row && cont -> offset < 0 ? PRS : WTE;
 
 		draw_left_arrow(cr, lc, 0.4 * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
 		draw_right_arrow(cr, rc, (cont -> puz -> width + 0.6) * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
-
   }
 
 	return true;

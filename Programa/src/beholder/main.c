@@ -11,8 +11,8 @@ static Puzzle* initial_state()
 {
 	Puzzle* puz = malloc(sizeof(Puzzle));
 
-	puz -> height = 16;
-	puz -> width = 16;
+	puz -> height = 4;
+	puz -> width = 5;
 
 	// fscanf(stdin, "%hhu", &puz -> height);
 	// fscanf(stdin, "%hhu", &puz -> width);
@@ -43,15 +43,14 @@ int main(int argc, char** argv)
 	Content cont;
 	cont.color_table = color_table();
 	cont.puz = initial_state();
-	cont.row_offset = calloc(cont.puz -> height, sizeof(double));
-	cont.col_offset = calloc(cont.puz -> width, sizeof(double));
+	cont.mode = ALL;
+	cont.offset = 0;
+	cont.index = 0;
 
 	window_create(&cont);
 
 	puzzle_destroy(cont.puz);
 	free(cont.color_table);
-	free(cont.row_offset);
-	free(cont.col_offset);
 
 	return 0;
 }

@@ -23,7 +23,6 @@ enum draw_mode
 typedef enum draw_mode Mode;
 
 
-
 /** Contiene la información gráfica del puzzle */
 struct content
 {
@@ -33,10 +32,12 @@ struct content
 	double cell_size;
 	/** La tabla con los distintos colores */
 	Color* color_table;
-	/** El desplazamiento que tiene una fila hacia la derecha */
-	double* row_offset;
-	/** El desplazamiento que tiene una columna hacia abajo */
-	double* col_offset;
+	/** Qué es lo que hay que dibujar */
+	Mode mode;
+	/** La variación en posición de una de las filas / columnas */
+	double offset;
+	/** Cual fila / columna está variando */
+	uint8_t index;
 };
 /** Contiene la información de las dimensiones del canvas */
 typedef struct content Content;

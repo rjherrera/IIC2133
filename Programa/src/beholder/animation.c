@@ -7,7 +7,7 @@
 #include "drawing.h"
 
 #define TOTALTIME 300.0
-#define TIMESTEP 5.0
+#define TIMESTEP 10.0
 
 
 /** El thread encargado de actualizar el contenido de la ventana */
@@ -24,69 +24,60 @@ void double_swap(double* a, double* b)
 /** Anima cuadro por cuadro el desplazamiento de una fila o columna */
 void animate_shift(GtkWidget* canvas, Content* cont, uint8_t index, char code)
 {
-	/* La animacion es de el movimiento de una fila? */
-	bool row;
 	/* Hacia que lado es el desplazamiento? (El eje Y crece hacia abajo) */
 	int8_t signum;
-	/* La funcion de desplazamiento correspondiente para el puzzle */
+	/* La función de desplazamiento correspondiente para el puzzle */
 	shift_fn_t shift_fn;
 
 	/* Todo eso está definido por la dirección del movimiento */
 	switch(code)
 	{
 		/* Right */
-		case 'R': row = true;  signum = 1;  shift_fn = puzzle_shift_right; break;
+		case 'R': cont -> mode = ROW; signum = 1;  shift_fn = puzzle_shift_right; break;
 		/* Up */
-		case 'U': row = false; signum = -1; shift_fn = puzzle_shift_up;    break;
+		case 'U': cont -> mode = COL; signum = -1; shift_fn = puzzle_shift_up;    break;
 		/* Left */
-		case 'L': row = true;  signum = -1; shift_fn = puzzle_shift_left;  break;
+		case 'L': cont -> mode = ROW; signum = -1; shift_fn = puzzle_shift_left;  break;
 		/* Down */
-		case 'D': row = false; signum = 1;  shift_fn = puzzle_shift_down;  break;
+		case 'D': cont -> mode = COL; signum = 1;  shift_fn = puzzle_shift_down;  break;
 		default : abort();
 	}
 
-	/* Bounding rectangle of affected area */
-	uint8_t len = row ? cont -> puz -> width : cont -> puz -> height;
+	/* Rectangulo que encierra el área afectada por la animación */
+	uint8_t len = cont -> mode == ROW ? cont -> puz -> width : cont -> puz -> height;
 
 	double start_x = cont -> cell_size / 2 + cont -> cell_size * index;
 	double start_y = 0;
 	double width = cont -> cell_size;
 	double height = (len + 1) * cont -> cell_size;
 
-	if(row)
+	/* Las filas y columnas son recíprocas */
+	if(cont -> mode == ROW)
 	{
 		double_swap(&start_x, &start_y);
 		double_swap(&width, &height);
 	}
 
-	/* Animation parameters */
+	/* Parámetros de la animación */
 	double frames = TOTALTIME / TIMESTEP;
 	double delta = cont -> cell_size / frames;
+	cont -> index = index;
 
-	/* Animation itself */
+	/* La animación en sí */
 	for(int i = 0; i < frames; i++)
 	{
-		if(row)
-		{
-			cont -> row_offset[index] += signum*delta;
-		}
-		else
-		{
-			cont -> col_offset[index] += signum*delta;
-		}
+		cont -> offset += signum * delta;
 
 		gtk_widget_queue_draw_area(canvas, start_x, start_y, width, height);
+		// gtk_widget_queue_draw(canvas);
 		usleep(TIMESTEP * 1000);
 	}
-	if(row)
-	{
-		cont -> row_offset[index] = 0;
-	}
-	else
-	{
-		cont -> col_offset[index] = 0;
-	}
 
+	/* Resetear los parámetros */
+	cont -> offset = 0;
+	cont -> mode = ALL;
+
+	/* Hacer permantente el cambio de posición */
 	shift_fn(cont -> puz, index);
 	gtk_widget_queue_draw(canvas);
 }
