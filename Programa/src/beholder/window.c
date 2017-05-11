@@ -12,24 +12,13 @@ gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer data)
 }
 
 /** Inicializa el canvas de acuerdo al tablero que se va a dibujar */
-double gtk_canvas_init(GtkWidget* canvas, Puzzle* puz)
+void gtk_canvas_init(GtkWidget* canvas, Content* cont)
 {
-	/* Tamaño por defecto del canvas */
-	double cell_size     = CELL_SIZE;
-	double canvas_height = cell_size * (puz -> height + 1);
-	double canvas_width  = cell_size * (puz -> width + 1);
-
-	/* Restricción de tamaño */
-	double scale = MAX_DIMENSION / fmax(canvas_width, canvas_height);
-
-	/* Escalamiento */
-	cell_size     *= scale;
-	canvas_height *= scale;
-	canvas_width  *= scale;
+	/* Tamaño del canvas */
+	double canvas_height = cont -> cell_size * (cont -> puz -> height + 1);
+	double canvas_width  = cont -> cell_size * (cont -> puz -> width + 1);
 
 	gtk_widget_set_size_request(canvas, canvas_width, canvas_height);
-
-	return cell_size;
 }
 
 void window_create(Content* cont)
@@ -47,7 +36,7 @@ void window_create(Content* cont)
 
   /* Inicializar canvas */
   GtkWidget* canvas = gtk_drawing_area_new();
-	cont -> cell_size = gtk_canvas_init(canvas, cont -> puz);
+	gtk_canvas_init(canvas, cont);
 
 	/* Ligar eventos */
   g_signal_connect(canvas, "draw", G_CALLBACK(draw), cont);

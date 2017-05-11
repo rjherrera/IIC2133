@@ -1,14 +1,21 @@
 #include <stdio.h>
 #include "drawing.h"
 #include <stdlib.h>
+#include <math.h>
+
 /** La razón entre ambos cuadrados de una celda */
 #define RATIO 0.5
 /** Color de fondo */
-#define BGC (Color){.R = 13.5 /255.0, .G = 13.5 /255.0,.B = 23.5 /255.0}
+#define BGC (Color){.R = 27.0 /255.0, .G = 27.0 /255.0,.B = 47.0 /255.0}
 /** Color de las flechas */
 #define WTE (Color){.R = 200.0/255.0, .G = 200.0/255.0,.B = 200.0/255.0}
 /** Color de las flechas apretadas */
 #define PRS (Color){.R = 0.0/255.0, .G = 0.0/255.0,.B = 255.0/255.0}
+
+/* ------------------------- Variables Globales --------------------------- */
+
+/** Cada uno de los bloques dibujado por separado */
+cairo_surface_t* block_sprites[8];
 
 /* ------------------------------ Útiles ---------------------------------- */
 
@@ -22,6 +29,13 @@ Color color_scale(Color color, double k)
 void color_dip(cairo_t* cr, Color color)
 {
   cairo_set_source_rgb(cr,color.R,color.G, color.B);
+}
+
+double gap_width(double const cell_size)
+{
+	double const ratio = 0.15 - cell_size/(MAX_DIMENSION*4);
+
+	return ratio * cell_size + 1.5;
 }
 
 /* ----------------------------- Flechas ---------------------------------- */
@@ -74,12 +88,12 @@ void draw_bottom_arrow(cairo_t* cr, Color color, double x, double y, double size
 
 
 /** Dibuja un bloque centrado en x e y, del tamaño especificado */
-void draw_block(cairo_t* cr, Color color, double x, double y, double size)
+void draw_block(cairo_t* cr, Color color, double const x, double const y, double const size)
 {
   /* Las dimensiones del cuadrado mayor, menos un poco para dejar espacio */
-  double outer = 0.95 * size;
+  double outer = size - gap_width(size);
   /* Establecemos el grosor de linea */
-  cairo_set_line_width(cr, outer/(MAX_DIMENSION/2));
+  cairo_set_line_width(cr, size/10);
 
   /* Rellena el cuadrado entero primero */
   cairo_rectangle(cr, x - outer / 2, y - outer/2, outer, outer);
@@ -105,36 +119,57 @@ void draw_block(cairo_t* cr, Color color, double x, double y, double size)
   cairo_fill(cr);
 }
 
-void draw_frame(cairo_t* cr, Content* cont)
+void draw_frame(cairo_t* restrict cr, Content* restrict cont)
 {
-	color_dip(cr, BGC);
 	double sx, sy, w, h;
+
+	sx = cont -> cell_size / 2;
+	sy = cont -> cell_size / 2;
+	w = cont -> puz -> width * cont -> cell_size;
+	h = cont -> puz -> height * cont -> cell_size;
+
+	cairo_move_to(cr, sx, sy + h + gap_width(cont -> cell_size));
+	cairo_line_to(cr, sx, sy);
+	cairo_line_to(cr, sx + w + gap_width(cont -> cell_size), sy);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_MULTIPLY);
+
+	cairo_set_source_rgba(cr, 13.5 /255.0, 13.5 /255.0, 23.5 /255.0, 0.5);
+	cairo_set_line_width(cr, cont -> cell_size * 0.4);
+	cairo_stroke(cr);
+
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+
+	sx -= gap_width(cont -> cell_size);
+	sy -= gap_width(cont -> cell_size);
+	w  += 2 * gap_width(cont -> cell_size);
+	h  += 2 * gap_width(cont -> cell_size);
+
+	cairo_rectangle(cr, sx, sy, w, h);
+
+	color_dip(cr, WTE);
+	cairo_set_line_width(cr, gap_width(cont -> cell_size) * 1.05);
+	cairo_stroke_preserve(cr);
+
+	cairo_new_sub_path(cr);
+
 	sx = 0;
 	sy = 0;
 	w = (cont -> puz -> width + 1) * cont -> cell_size;
-	h = cont -> cell_size / 2;
+	h = (cont -> puz -> height + 1) * cont -> cell_size;
 
 	cairo_rectangle(cr, sx, sy, w, h);
-
-	sy = (cont -> puz -> height + 0.5) * cont -> cell_size;
-
-	cairo_rectangle(cr, sx, sy, w, h);
-
-	sy = cont -> cell_size / 2;
-	w = cont -> cell_size / 2;
-	h = cont -> puz -> height * cont -> cell_size;
-
-	cairo_rectangle(cr, sx, sy, w, h);
-
-	sx = (cont -> puz -> width + 0.5) * cont -> cell_size;
-
-	cairo_rectangle(cr, sx, sy, w, h);
-
+	cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+	color_dip(cr, color_scale(WTE,0.4));
 
 	cairo_fill(cr);
+
+	cairo_set_fill_rule (cr, CAIRO_FILL_RULE_WINDING);
 }
 
-bool canvas_draw(cairo_t* cr, Content* cont)
+
+bool canvas_draw(cairo_t* restrict cr, Content* restrict cont)
 {
 	/* Color de fondo */
 	color_dip(cr, BGC);
@@ -143,102 +178,92 @@ bool canvas_draw(cairo_t* cr, Content* cont)
 	uint8_t width = cont -> puz -> width;
 	uint8_t height = cont -> puz -> height;
 
-	if(cont -> mode == ALL)
-	{
-		/* Dibuja los bloques */
-		for(int row = 0; row < height; row++)
-	  {
-	    for(int col = 0; col < width; col++)
-	    {
-				int r = (height + row) % height;
-				int c = (width + col) % width;
+	Mode mode = cont -> mode;
 
-	      double sx = cont -> cell_size;
-	      double sy = cont -> cell_size;
-	      double cx = sx + col * cont -> cell_size;
-				double cy = sy + row * cont -> cell_size;
+	int16_t row_start = mode == ROW ? cont -> index : -1;
+	int16_t row_end = mode == ROW ? cont -> index : height;
 
-				Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
-	      draw_block(cr, color, cx, cy, cont -> cell_size);
-	    }
-	  }
+	int16_t col_start = mode == COL ? cont -> index : -1;
+	int16_t col_end = mode == COL ? cont -> index : width;
 
-		/* Dibuja las flechas */
-		for(int col = 0; col < cont -> puz -> width; col++)
-	  {
-			draw_top_arrow(cr, WTE, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
-			draw_bottom_arrow(cr, WTE, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
-	  }
+	double x_off = mode == ROW ? cont -> offset : 0;
+	double y_off = mode == COL ? cont -> offset : 0;
 
-		for(int row = 0; row < cont -> puz -> height; row++)
-	  {
-			draw_left_arrow(cr, WTE, 0.4 * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size / 2);
-			draw_right_arrow(cr, WTE, (cont -> puz -> width + 0.6) * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
-	  }
-	}
-	else if(cont -> mode == ROW)
-	{
-		int row = cont -> index;
-
-		/* Dibuja los bloques */
-    for(int col = -1; col <= width; col++)
+	/* Dibuja los bloques */
+	for(int16_t row = row_start; row <= row_end; row++)
+  {
+    for(int16_t col = col_start; col <= col_end; col++)
     {
 			int r = (height + row) % height;
 			int c = (width + col) % width;
+			int index = cont -> puz -> matrix[r][c];
 
-      double sx = cont -> cell_size;
-      double sy = cont -> cell_size;
-      double cx = sx + col * cont -> cell_size + cont -> offset;
-			double cy = sy + row * cont -> cell_size;
+			// double cx = (col + 1) * cont -> cell_size + x_off;
+			// double cy = (row + 1) * cont -> cell_size + y_off;
+			//
+			// Color color = cont -> color_table[index];
+      // draw_block(cr, color, cx, cy, cont -> cell_size);
 
-			Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
-      draw_block(cr, color, cx, cy, cont -> cell_size);
+			double cx = (col + 0.5) * cont -> cell_size + x_off;
+			double cy = (row + 0.5) * cont -> cell_size + y_off;
+
+			cairo_set_source_surface(cr, block_sprites[index], cx, cy);
+			cairo_rectangle(cr, cx, cy, cont -> cell_size,cont -> cell_size);
+			cairo_fill(cr);
     }
+  }
 
-		/* Tapa los bloques exteriores */
-		draw_frame(cr, cont);
+	/* Tapa los bloques exteriores */
+	draw_frame(cr, cont);
 
-		/* Dibuja las flechas */
-		Color lc = cont -> offset > 0 ? PRS : WTE;
-		Color rc = cont -> offset < 0 ? PRS : WTE;
 
-		draw_left_arrow(cr, lc, 0.4 * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
-		draw_right_arrow(cr, rc, (cont -> puz -> width + 0.6) * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
-	}
-	else if(cont -> mode == COL)
+	if(mode == ROW)
 	{
-		int col = cont -> index;
-
-		/* Dibuja los bloques */
-		for(int row = -1; row <= height; row++)
-	  {
-			int r = (height + row) % height;
-			int c = (width + col) % width;
-
-      double sx = cont -> cell_size;
-      double sy = cont -> cell_size;
-      double cx = sx + col * cont -> cell_size;
-			double cy = sy + row * cont -> cell_size + cont -> offset;
-
-			Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
-      draw_block(cr, color, cx, cy, cont -> cell_size);
-	  }
-
-		/* Tapa los bloques exteriores */
-		draw_frame(cr, cont);
-
-		/* Dibuja las flechas */
-
-		Color tc = cont -> offset > 0 ? PRS : WTE;
-		Color bc = cont -> offset < 0 ? PRS : WTE;
-
-		draw_top_arrow(cr, tc, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
-		draw_bottom_arrow(cr, bc, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
+		if(cont -> offset > 0)
+		{
+			draw_left_arrow(cr, WTE, 0.4 * cont -> cell_size - gap_width(cont -> cell_size), (cont -> index + 1) * cont -> cell_size, cont -> cell_size / 2);
+		}
+		else
+		{
+			draw_right_arrow(cr, WTE, (cont -> puz -> width + 0.6) * cont -> cell_size + gap_width(cont -> cell_size), (cont -> index + 1) * cont -> cell_size, cont -> cell_size / 2);
+		}
 	}
-	else
+
+	if(mode == COL)
 	{
-		abort();
+		if(cont -> offset > 0)
+		{
+			draw_top_arrow(cr, WTE, (cont -> index + 1) * cont -> cell_size, 0.4 * cont -> cell_size - gap_width(cont -> cell_size), cont -> cell_size/2);
+		}
+		else
+		{
+			draw_bottom_arrow(cr, WTE, (cont -> index + 1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size + gap_width(cont -> cell_size), cont -> cell_size/2);
+		}
 	}
 
 	return true;
+}
+
+void drawing_free()
+{
+	for(int i = 0; i < 8; i++)
+	{
+		cairo_surface_destroy(block_sprites[i]);
+	}
+}
+
+void drawing_init(Color* color_table, double const cell_size)
+{
+	for(int i = 0; i < 8; i++)
+	{
+		block_sprites[i] = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ceil(cell_size),  ceil(cell_size));
+		cairo_t* cr = cairo_create(block_sprites[i]);
+
+		cairo_set_source_rgba(cr, 0, 0, 0, 0);
+		cairo_paint(cr);
+
+		draw_block(cr, color_table[i], cell_size/2, cell_size/2, cell_size);
+
+		cairo_destroy(cr);
+	}
 }
