@@ -11,8 +11,8 @@ static Puzzle* initial_state()
 {
 	Puzzle* puz = malloc(sizeof(Puzzle));
 
-	puz -> height = 4;
-	puz -> width = 5;
+	puz -> height = 16;
+	puz -> width = 16;
 
 	// fscanf(stdin, "%hhu", &puz -> height);
 	// fscanf(stdin, "%hhu", &puz -> width);
