@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "drawing.h"
+#include <stdlib.h>
 /** La razón entre ambos cuadrados de una celda */
 #define RATIO 0.5
 /** Color de fondo */
@@ -142,9 +143,44 @@ bool canvas_draw(cairo_t* cr, Content* cont)
 	uint8_t width = cont -> puz -> width;
 	uint8_t height = cont -> puz -> height;
 
-	/* Dibuja los bloques */
-	for(int row = -1; row <= height; row++)
-  {
+	if(cont -> mode == ALL)
+	{
+		/* Dibuja los bloques */
+		for(int row = 0; row < height; row++)
+	  {
+	    for(int col = 0; col < width; col++)
+	    {
+				int r = (height + row) % height;
+				int c = (width + col) % width;
+
+	      double sx = cont -> cell_size;
+	      double sy = cont -> cell_size;
+	      double cx = sx + col * cont -> cell_size;
+				double cy = sy + row * cont -> cell_size;
+
+				Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
+	      draw_block(cr, color, cx, cy, cont -> cell_size);
+	    }
+	  }
+
+		/* Dibuja las flechas */
+		for(int col = 0; col < cont -> puz -> width; col++)
+	  {
+			draw_top_arrow(cr, WTE, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
+			draw_bottom_arrow(cr, WTE, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
+	  }
+
+		for(int row = 0; row < cont -> puz -> height; row++)
+	  {
+			draw_left_arrow(cr, WTE, 0.4 * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size / 2);
+			draw_right_arrow(cr, WTE, (cont -> puz -> width + 0.6) * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
+	  }
+	}
+	else if(cont -> mode == ROW)
+	{
+		int row = cont -> index;
+
+		/* Dibuja los bloques */
     for(int col = -1; col <= width; col++)
     {
 			int r = (height + row) % height;
@@ -152,42 +188,57 @@ bool canvas_draw(cairo_t* cr, Content* cont)
 
       double sx = cont -> cell_size;
       double sy = cont -> cell_size;
-      double cx = sx + col * cont -> cell_size;
+      double cx = sx + col * cont -> cell_size + cont -> offset;
 			double cy = sy + row * cont -> cell_size;
-			if(cont -> mode == ROW && cont -> index == row)
-			{
-				cx += cont -> offset;
-			}
-			else if(cont -> mode == COL && cont -> index == col)
-			{
-				cy += cont -> offset;
-			}
+
 			Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
       draw_block(cr, color, cx, cy, cont -> cell_size);
     }
-  }
 
-	/* Tapa los bloques exteriores */
-	draw_frame(cr, cont);
+		/* Tapa los bloques exteriores */
+		draw_frame(cr, cont);
 
-	/* Dibuja las flechas */
-	for(int col = 0; col < cont -> puz -> width; col++)
-  {
-		Color tc = cont -> mode == COL && cont -> index == col && cont -> offset > 0 ? PRS : WTE;
-		Color bc = cont -> mode == COL && cont -> index == col && cont -> offset < 0 ? PRS : WTE;
-
-		draw_top_arrow(cr, tc, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
-		draw_bottom_arrow(cr, bc, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
-  }
-
-	for(int row = 0; row < cont -> puz -> height; row++)
-  {
-		Color lc = cont -> mode == ROW && cont -> index == row && cont -> offset > 0 ? PRS : WTE;
-		Color rc = cont -> mode == ROW && cont -> index == row && cont -> offset < 0 ? PRS : WTE;
+		/* Dibuja las flechas */
+		Color lc = cont -> offset > 0 ? PRS : WTE;
+		Color rc = cont -> offset < 0 ? PRS : WTE;
 
 		draw_left_arrow(cr, lc, 0.4 * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
 		draw_right_arrow(cr, rc, (cont -> puz -> width + 0.6) * cont -> cell_size, (row+1) * cont -> cell_size, cont -> cell_size/2);
-  }
+	}
+	else if(cont -> mode == COL)
+	{
+		int col = cont -> index;
+
+		/* Dibuja los bloques */
+		for(int row = -1; row <= height; row++)
+	  {
+			int r = (height + row) % height;
+			int c = (width + col) % width;
+
+      double sx = cont -> cell_size;
+      double sy = cont -> cell_size;
+      double cx = sx + col * cont -> cell_size;
+			double cy = sy + row * cont -> cell_size + cont -> offset;
+
+			Color color = cont -> color_table[cont -> puz -> matrix[r][c]];
+      draw_block(cr, color, cx, cy, cont -> cell_size);
+	  }
+
+		/* Tapa los bloques exteriores */
+		draw_frame(cr, cont);
+
+		/* Dibuja las flechas */
+
+		Color tc = cont -> offset > 0 ? PRS : WTE;
+		Color bc = cont -> offset < 0 ? PRS : WTE;
+
+		draw_top_arrow(cr, tc, (col+1) * cont -> cell_size, 0.4 * cont -> cell_size, cont -> cell_size/2);
+		draw_bottom_arrow(cr, bc, (col+1) * cont -> cell_size, (cont -> puz -> height + 0.6) * cont -> cell_size, cont -> cell_size/2);
+	}
+	else
+	{
+		abort();
+	}
 
 	return true;
 }
