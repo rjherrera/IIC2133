@@ -66,41 +66,43 @@ int main(int argc, char *argv[])
 
 	// TODO Procesar la melodía
 
-	// creacion de un "string" de formato ()
-	//int notes_number = melody -> element_array;
-	int notes_number = strlen(argv[3]);
-	char* palabra = argv[3];
+	// preprocesar la melodía
+	// char *string = string_from_melody(melody);
 
-	TrieNode* root = create_node("ROOT", notes_number);
-	TrieNode* current = root;
-    for (int i = 0; i < notes_number; i++) {
-    	current = root;
-    	printf("%s\n", current -> value);
-        for (int j = i; j < notes_number; j++){
-        	printf("Current: %s\n", current -> value);
-        	char* value = palabra[j];
-        	TrieNode* potential_node = create_node(&value, notes_number);
-        	int k = current -> n_kids;
-        	int present = is_in(potential_node, current -> kids, current -> n_kids);
-        	if (!present){
-        		current -> kids[k] = potential_node;
-        		current -> n_kids = current -> n_kids + 1;
-        		printf("  Hijos de %s: %d\n", current->value, current -> n_kids);
-        		printf("  Nuevo in %s: Node(%c)\n", current->value, value);
-        	}
-        	else {
-        		// printf("  Ya estaba: %c|%d de %d| en %s\n", value, present, current -> n_kids, current -> value);
-                printf("  Ya estaba: %c en Node(%s)[%d]\n", value, current -> value, present - 1);
+	// int notes_number = melody -> length;
+	int notes_number = 7;
+	char* palabra[notes_number];
+	// banana$ = "(1|1)(1|2)(1|3)(1|2)(1|3)(1|2)" <- b=1|1, a=1|2, n=1|3
+	//char *prepa[7] = {"(1|1)", "(1|2)", "(1|3)", "(1|2)", "(1|3)", "(1|2)", "$"};
+	char* prepa[7] = {"b", "a", "n", "a", "n", "a", "$"};
+	for (int i = 0; i < notes_number; ++i)
+	{
+		palabra[i] = malloc(strlen("a") + 1);
+		strcpy(palabra[i], prepa[i]);
+	}
 
-        		k = present - 1;
-        	}
-        	current = current -> kids[k];
-        }
-    }
-    // for (int i = 0; i < root -> n_kids; ++i)
-    // {
-    // 	printf("jjj%s\n", root -> kids[i] -> value);
-    // }
+	// imprimir string inicial
+	for (int i = 0; i < notes_number; ++i) printf("%s", palabra[i]);
+	printf("\n");
+
+	// armar el trie a partir del string
+	TrieNode* root = build_trie(notes_number, palabra);
+
+	// imprimir el trie con indicador de profundidad
+    // print_trie(root, 0);
+    printf("Suffixes: %d\n", count_leafs(root));
+    // PROBAR SI UN SUBSTRING ESTÁ EN LA PALABRA
+
+    // substring como lista de caracteres (o strings)
+    char* substring[2] = {"a","n"};
+    int subs_len = 2;
+    // // imprimir el substring en cuestion
+    for (int i = 0; i < subs_len; ++i) printf("%s", substring[i]);
+    printf(":\n");
+    int appearences = 0;
+    printf(" Exists: %d\n", substring_exists(root, substring, subs_len, &appearences));
+    printf(" Count: %d\n", appearences);
+
 
     return 0;
 
