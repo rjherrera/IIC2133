@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../music/melody.h"
+#include "suffix.h"
+#include <stdbool.h>
 
 /** Revisa que los parámetros sean válidos */
 void check_parameters(int argc, char *argv[])
@@ -32,6 +34,21 @@ void check_parameters(int argc, char *argv[])
 	}
 }
 
+
+// int is_in(TrieNode *node, TrieNode **node_array, int size){
+// 	for (int i = 0; i < size; ++i)
+// 	{
+// 		printf(" kids:%s", node_array[i] -> value);
+// 	}
+// 	printf("\n");
+//     for (int i = 0; i < size; i++) {
+//     	printf(" Esta: %d |%s==%s\n", !strcmp(node_array[i] -> value, node -> value), node_array[i] -> value, node -> value);
+//         if (!strcmp(node_array[i] -> value, node -> value)) return i + 1;
+//     }
+//     return 0;
+// }
+
+
 int main(int argc, char *argv[])
 {
 	/* Revisa que los parámetros sean correctos antes de empezar */
@@ -49,6 +66,57 @@ int main(int argc, char *argv[])
 
 	// TODO Procesar la melodía
 
+	// creacion de un "string" de formato ()
+	//int notes_number = melody -> element_array;
+	int notes_number = strlen(argv[3]);
+	char* palabra = argv[3];
+
+	TrieNode* root = create_node("ROOT", notes_number);
+	TrieNode* current = root;
+    for (int i = 0; i < notes_number; i++) {
+    	current = root;
+    	printf("%s\n", current -> value);
+        for (int j = i; j < notes_number; j++){
+        	printf("Current: %s\n", current -> value);
+        	char* value = palabra[j];
+        	TrieNode* potential_node = create_node(&value, notes_number);
+        	int k = current -> n_kids;
+        	int present = is_in(potential_node, current -> kids, current -> n_kids);
+        	if (!present){
+        		current -> kids[k] = potential_node;
+        		current -> n_kids = current -> n_kids + 1;
+        		printf("  Hijos de %s: %d\n", current->value, current -> n_kids);
+        		printf("  Nuevo in %s: Node(%c)\n", current->value, value);
+        	}
+        	else {
+        		// printf("  Ya estaba: %c|%d de %d| en %s\n", value, present, current -> n_kids, current -> value);
+                printf("  Ya estaba: %c en Node(%s)[%d]\n", value, current -> value, present - 1);
+
+        		k = present - 1;
+        	}
+        	current = current -> kids[k];
+        }
+    }
+    // for (int i = 0; i < root -> n_kids; ++i)
+    // {
+    // 	printf("jjj%s\n", root -> kids[i] -> value);
+    // }
+
+    return 0;
+
+
+	printf("Largo melodía: %zu\n", melody -> length);
+	for (int i = 0; i < melody -> length; ++i)
+	{
+		printf("L:%u | N:%hhu\n", melody -> element_array[i].length, melody -> element_array[i].note);
+	}
+
+	int suffix_array[melody -> length];
+
+	for (int i = 0; i < melody -> length; ++i)
+	{
+		suffix_array[i] = melody -> element_array[i].note;
+	}
 
 	/* Obtiene el midi a partir de la melodía resultante */
 	midi = melody_to_midi(melody);
