@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../music/melody.h"
 #include "suffix.h"
+#include "melody_helpers.h"
 #include <stdbool.h>
 
 /** Revisa que los parámetros sean válidos */
@@ -65,63 +66,84 @@ int main(int argc, char *argv[])
 
 
 	// TODO Procesar la melodía
-
 	// preprocesar la melodía
-	// char *string = string_from_melody(melody);
+	int notes_number = melody -> length;
+	printf("%d\n", notes_number);
+	char* string[notes_number + 1];
+	char* orig_string[notes_number + 1];
+	string_from_melody(&string, melody, notes_number, &orig_string);
+	string[notes_number] = "$";
 
-	// int notes_number = melody -> length;
-	int notes_number = 7;
-	char* palabra[notes_number];
 	// banana$ = "(1|1)(1|2)(1|3)(1|2)(1|3)(1|2)" <- b=1|1, a=1|2, n=1|3
-	//char *prepa[7] = {"(1|1)", "(1|2)", "(1|3)", "(1|2)", "(1|3)", "(1|2)", "$"};
-	char* prepa[7] = {"b", "a", "n", "a", "n", "a", "$"};
-	for (int i = 0; i < notes_number; ++i)
-	{
-		palabra[i] = malloc(strlen("a") + 1);
-		strcpy(palabra[i], prepa[i]);
-	}
+	// char *prepa[7] = {"(1|1)", "(1|2)", "(1|3)", "(1|2)", "(1|3)", "(1|2)", "$"};
+	// char *prepa[7] = {"b", "a", "n", "a", "n", "a", "$"};
+	// for (int i = 0; i < notes_number; ++i){
+	// 	string[i] = malloc(strlen("a") + 1);
+	// 	strcpy(string[i], prepa[i]); // prepa en vez de buff
+	// }
 
 	// imprimir string inicial
-	for (int i = 0; i < notes_number; ++i) printf("%s", palabra[i]);
+	for (int i = 0; i < notes_number + 1; ++i) printf("%s", string[i]);
 	printf("\n");
+	// for (int i = 0; i < notes_number; ++i) printf("%s", orig_string[i]);
+	// printf("\n");
 
 	// armar el trie a partir del string
-	TrieNode* root = build_trie(notes_number, palabra);
+	TrieNode* root = build_trie(notes_number + 1, string);
 
 	// imprimir el trie con indicador de profundidad
-    // print_trie(root, 0);
+    print_trie(root, 0);
     printf("Suffixes: %d\n", count_leafs(root));
-    // PROBAR SI UN SUBSTRING ESTÁ EN LA PALABRA
 
+
+    // PROBAR SI UN SUBSTRING ESTÁ EN LA PALABRA
     // substring como lista de caracteres (o strings)
-    char* substring[2] = {"a","n"};
-    int subs_len = 2;
-    // // imprimir el substring en cuestion
+    char* substring[3] = {"(-4|512|0)","(4|512|0)","(-4|512|0)"};
+    int subs_len = 3;
+    // imprimir el substring en cuestion
+    printf("'");
     for (int i = 0; i < subs_len; ++i) printf("%s", substring[i]);
-    printf(":\n");
+    printf("':\n");
     int appearences = 0;
     printf(" Exists: %d\n", substring_exists(root, substring, subs_len, &appearences));
     printf(" Count: %d\n", appearences);
 
 
-    return 0;
+	// printf("Largo melodía: %zu\n", melody -> length);
+	// for (int i = 0; i < melody -> length; ++i)
+	// {
+	// 	printf("L:%u | N:%hhu\n", melody -> element_array[i].length, melody -> element_array[i].note);
+	// }
 
+	// int suffix_array[melody -> length];
 
-	printf("Largo melodía: %zu\n", melody -> length);
-	for (int i = 0; i < melody -> length; ++i)
-	{
-		printf("L:%u | N:%hhu\n", melody -> element_array[i].length, melody -> element_array[i].note);
+	// for (int i = 0; i < melody -> length; ++i)
+	// {
+	// 	suffix_array[i] = melody -> element_array[i].note;
+	// }
+
+	// EXPORTAR MELODIA
+	int soul_length = subs_len;
+	midi = melody_to_midi(melody);
+
+	Melody* melody_output = melody_from_midi(midi);
+	melody_output -> length = soul_length;
+	Element guide = melody_output -> element_array[0];
+	melody_output -> element_array = malloc(soul_length * sizeof(Element));
+	for (int i = 0; i < soul_length; ++i){
+		Element elemento;
+		int* md = malloc(2 * sizeof(int));
+		memcpy(md, guide.metadata, 2 * sizeof(int));
+		elemento.metadata = md;
+		elemento.length = 512;
+		elemento.note = 65;
+		elemento.type = NOTE;
+		melody_output -> element_array[i] = elemento;
 	}
 
-	int suffix_array[melody -> length];
-
-	for (int i = 0; i < melody -> length; ++i)
-	{
-		suffix_array[i] = melody -> element_array[i].note;
-	}
 
 	/* Obtiene el midi a partir de la melodía resultante */
-	midi = melody_to_midi(melody);
+	midi = melody_to_midi(melody_output);
 
 	/* Guarda el midi como archivo */
 	midi_to_file(midi, argv[3]);
@@ -131,6 +153,7 @@ int main(int argc, char *argv[])
 
 	/* Destruye la melodía */
  	melody_destroy(melody);
+ 	melody_destroy(melody_output);
 
 	return 0;
 }

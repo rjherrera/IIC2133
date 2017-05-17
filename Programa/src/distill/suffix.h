@@ -1,6 +1,8 @@
 struct trie_node{
     // int n;
     int n_kids;
+    char* note_1;
+    char* note_2;
     char* value;
     struct trie_node **kids;
 };
