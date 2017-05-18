@@ -28,7 +28,7 @@ char* string_from_melody_deprecated(Melody *melody){
     return buffer_delta;
 }
 
-void string_from_melody(char **string, Melody *melody, int notes_number, char **orig_string){
+void string_from_melody(char **string, Melody *melody, int notes_number){//, char **orig_string){
     int node_delta_size = 10 + 4 + 1 + 4;
     char *node_delta = malloc(node_delta_size);
     for (int i = 0; i < notes_number; i++) {
@@ -43,5 +43,9 @@ void string_from_melody(char **string, Melody *melody, int notes_number, char **
         sprintf(node_delta, "(%d|%u|%d)", delta, element.length, element.type);
         string[i] = malloc(strlen(node_delta));
         strcpy(string[i], node_delta);
+
+        // sprintf(node_delta, "(%hhu|%u|%d)", element.note, element.length, element.type);
+        // orig_string[i] = malloc(strlen(node_delta));
+        // strcpy(orig_string[i], node_delta);
     }
 }
