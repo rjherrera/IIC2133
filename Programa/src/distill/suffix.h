@@ -137,12 +137,15 @@ TrieNode* build_trie(int size, char **string_array, Element *notes_array, int mu
                 // }
             }
             current = current -> kids[k];
-            level++;
+            if (!current -> note_1.type && !current -> note_2.type) level++;
             if (level >= mu - 1 && current -> passes > 1){
-                current -> level = level;
+                if (!current -> note_1.type){
+
+                    current -> level = level;
+                }
                 candidates_array[*candidates] = current;
                 *candidates = *candidates + 1;
-                printf("Candidato de prof: %d (%s)\n", level, current -> value);
+                // printf("Candidato de prof: %d (%s)\n", level, current -> value);
             }
         }
     }

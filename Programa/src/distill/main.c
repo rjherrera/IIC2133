@@ -103,14 +103,14 @@ int main(int argc, char *argv[])
 	// printf("\n");
 
 	// armar el trie a partir del string
-	TrieNode **candidates_array = malloc(100* notes_number * sizeof(TrieNode*));
+	TrieNode **candidates_array = malloc(10 * notes_number * sizeof(TrieNode*));
 	int candidates_number = 0;
 	TrieNode* root = build_trie(notes_number + 1, string, melody -> element_array, mu, candidates_array, &candidates_number);
 
 	// imprimir el trie con indicador de profundidad
 	level_trie(root, 0);
     // print_trie(root, 0);
-    printf("Suffixes: %d\n", count_leafs(root));
+    // printf("Suffixes: %d\n", count_leafs(root));
 
 
     // PROBAR SI UN SUBSTRING ESTÁ EN LA PALABRA
@@ -133,9 +133,11 @@ int main(int argc, char *argv[])
     		actual_max = candidates_array[i];
     	}
     	else if (candidates_array[i] -> passes == actual_max -> passes){
-    		if (candidates_array[i] -> level > actual_max -> level) actual_max = candidates_array[i];
+    		if (candidates_array[i] -> level > actual_max -> level){
+    			actual_max = candidates_array[i];
+    		}
     	}
-    	printf("Candidato %d: %s\n", i, candidates_array[i] -> value);
+    	// printf("Candidato %d: %s\n", i, candidates_array[i] -> value);
     }
     printf("\nMejor: Node(%s)\n", actual_max -> value);
     printf("Subs + repetido de largo >= %d: ", mu);
@@ -143,25 +145,12 @@ int main(int argc, char *argv[])
     print_route(actual_max, &soul_length);
 
 
-	// printf("Largo melodía: %zu\n", melody -> length);
-	// for (int i = 0; i < melody -> length; ++i)
-	// {
-	// 	printf("L:%u | N:%hhu\n", melody -> element_array[i].length, melody -> element_array[i].note);
-	// }
-
-	// int suffix_array[melody -> length];
-
-	// for (int i = 0; i < melody -> length; ++i)
-	// {
-	// 	suffix_array[i] = melody -> element_array[i].note;
-	// }
-
 	// EXPORTAR MELODIA
     TrieNode* current = actual_max;
     Element *soul_notes_array = malloc((soul_length) * sizeof(Element));
     int iter = 0;
     while (strcmp(current -> value, "ROOT")){
-    	printf("%s\n", current -> value);
+    	// printf("%s\n", current -> value);
     	soul_notes_array[iter] = current -> note_2;
     	if (!strcmp(current -> parent -> value, "ROOT")){
     		soul_notes_array[iter + 1] = current -> note_1;
@@ -169,31 +158,25 @@ int main(int argc, char *argv[])
         current = current -> parent;
         iter++;
     }
-    // soul_length = 3;
 
-    printf("len(soul): %d\n", soul_length);
+    // printf("len(soul): %d\n", soul_length);
 	midi = melody_to_midi(melody);
 
-	// int **soul_array = malloc(2 * soul_length * sizeof(int*));
-	// for (int i = 0; i < soul_length; ++i){
-	// 	soul_array[i] = malloc(3 * sizeof(int));
-	// 	soul_array[i][0] = 69 - i * 4;
-	// 	soul_array[i][1] = 512;
-	// 	soul_array[i][2] = 0;
-	// }
-	printf("%d\n", soul_notes_array[soul_length-1].note);
+	// printf("%d\n", soul_notes_array[soul_length-1].note);
 
 	Melody* melody_output = melody_from_midi(midi);
-	melody_output -> length = soul_length;
-	// Element guide = melody_output -> element_array[0];
-	melody_output -> element_array = malloc((soul_length) * sizeof(Element));
-	for (int i = 0; i < soul_length; ++i){
-		Element elemento = soul_notes_array[i];
-		int* md = malloc(2 * sizeof(int));
-		memcpy(md, elemento.metadata, 2 * sizeof(int));
-		elemento.metadata = md;
-		printf("%d|%d|%d\n", elemento.note, elemento.length, elemento.type);
-		melody_output -> element_array[soul_length - i - 1] = elemento;
+	if (soul_length > 1){
+		melody_output -> length = soul_length;
+		// Element guide = melody_output -> element_array[0];
+		melody_output -> element_array = malloc((soul_length) * sizeof(Element));
+		for (int i = 0; i < soul_length; ++i){
+			Element elemento = soul_notes_array[i];
+			int* md = malloc(2 * sizeof(int));
+			memcpy(md, elemento.metadata, 2 * sizeof(int));
+			elemento.metadata = md;
+			// printf("%d|%d|%d\n", elemento.note, elemento.length, elemento.type);
+			melody_output -> element_array[soul_length - i - 1] = elemento;
+		}
 	}
 
 
