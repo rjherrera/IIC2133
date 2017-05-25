@@ -8,7 +8,10 @@
 
 # El compilador a usar: Gnu C Compiler, Standard 2011 with GNU extensions
 CC=gcc -std=gnu11
-
+# La carpeta donde va todo el código
+SRC=src
+# La carpeta donde van todos los archivos de objeto
+OBJ=obj
 ###############################################################################
 # OPTIMIZACIÓN POR COMPILADOR (descomenta el que necesites, comenta el otro)  #
 ###############################################################################
@@ -33,18 +36,22 @@ CFLAGS=-Wunused -Wall $(OPT)
 MTH=-lm
 # Interfaz gráfica GTK+
 GTK=`pkg-config --cflags --libs gtk+-3.0`
+# Manejo de imagenes PNG (Portable Network Graphics)
+PNG=-lpng
+# Manejo de numeros arbitrariamente grandes: GNU Multi Precision library (GMP)
+GMP=-lgmp
 
-LIB=$(GTK) $(MTH)
+LIB=$(PNG) $(GTK) $(MTH) $(GMP)
 
 ###############################################################################
 # MÓDULOS Y PROGRAMAS                                                         #
 ###############################################################################
 
 # Directorios con elementos de uso común
-COMMON=puzzle
+COMMON=puzzle random
 
 # Directorios que serán compilados a un programa
-PROGRAMS=beholder
+PROGRAMS=beholder generator untangle
 
 # Todos los directorios que contienen archivos de código
 SRCDIR=$(COMMON) $(PROGRAMS)
@@ -53,18 +60,20 @@ SRCDIR=$(COMMON) $(PROGRAMS)
 # DEPENDENCIAS Y DIRECTORIOS                                                  #
 ###############################################################################
 
-# Todos los .h de las carpetas comunes, y la Makefile misma
-DEPS=$(foreach i, $(COMMON), $(wildcard src/$(i)/*.h))
+# Todos los archivos .h de las carpetas comunes
+DEPS := $(foreach i, $(COMMON), $(shell find $(SRC)/$(i) -name '*.h'))
+
+# Todos los archivos .h
+HDRFILES := $(shell find $(SRC) -name '*.h')
 
 # Todos los archivos .c
-SRC=$(foreach i, $(SRCDIR), $(wildcard src/$(i)/*.c))
+SRCFILES := $(shell find $(SRC) -name '*.c')
 
 # Archivos de objeto .o, un estado intermedio de compilación
-# Por cada .c dentro de src/X, se crea un .o dentro de obj/X
-OBJ=$(foreach i, $(SRC), $(patsubst src/%.c, obj/%.o, $(i)))
+OBJFILES := $(foreach i, $(SRCFILES), $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(i)))
 
 # Los directorios para los archivos de objeto .o
-OBJDIR=obj $(foreach i, $(SRCDIR), obj/$(i))
+OBJDIR := $(patsubst $(SRC)/%, $(OBJ)/%, $(shell find $(SRC) -type d))
 
 ###############################################################################
 # REGLAS                                                                      #
@@ -94,12 +103,12 @@ $(OBJDIR):
 .SECONDEXPANSION:
 
 # Dependencias locales para un archivo .o
-LOCAL_DEPS = $(wildcard src/$(patsubst obj/%/,%,$(dir $(1)))/*.h)
+LOCAL_DEPS = $(filter $(patsubst $(OBJ)/%, $(SRC)/%, $(dir $(1)))%, $(HDRFILES))
 
 # Esta regla compila cada archivo de objeto .o
 # Pero sólo si alguno de los siguientes fue modificado desde la última vez
 ## el .c respectivo del .o
-## algún .h de la carpeta respectiva en src
+## algún .h bajo la carpeta respectiva en src
 ## algún .h de los directorios comunes
 ## esta mismísima Makefile
 obj/%.o: src/%.c $$(call LOCAL_DEPS,$$@) $(DEPS) Makefile
@@ -109,7 +118,7 @@ obj/%.o: src/%.c $$(call LOCAL_DEPS,$$@) $(DEPS) Makefile
 # Pero solo una vez que se haya llamado la regla anterior con lo siguiente
 ## todos los .o de la carpeta respectiva del programa
 ## todos los .o de los directorios comunes
-$(PROGRAMS): $$(filter obj/$$@/% $(foreach i, $(COMMON), obj/$(i)/%), $(OBJ))
+$(PROGRAMS): $$(filter obj/$$@/% $(foreach i, $(COMMON), obj/$(i)/%), $(OBJFILES))
 	@$(CC) $(CFLAGS) $^ -o $@ $(LIB) && echo "compiled '$@'"
 
 ###############################################################################

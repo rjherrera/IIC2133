@@ -4,17 +4,16 @@
 #include <stdbool.h>
 #include <string.h>
 #include "animation.h"
-#include "drawing.h"
+#include "../drawing/drawing.h"
 
-#define TOTALTIME 300.0
-#define TIMESTEP 10.0
-
+#define TOTALTIME 192.0
+#define TIMESTEP 4.0
 
 /** El thread encargado de actualizar el contenido de la ventana */
 static pthread_t* update_thread;
 
 /** Intercambia los valores de dos variables a y b */
-void double_swap(double* a, double* b)
+static void double_swap(double* a, double* b)
 {
 	double aux = *a;
 	*a = *b;
@@ -22,7 +21,7 @@ void double_swap(double* a, double* b)
 }
 
 /** Anima cuadro por cuadro el desplazamiento de una fila o columna */
-void animate_shift(GtkWidget* canvas, Content* cont, uint8_t index, char code)
+static void animate_shift(GtkWidget* canvas, Content* cont, uint8_t index, char code)
 {
 	/* Hacia que lado es el desplazamiento? (El eje Y crece hacia abajo) */
 	int8_t signum;
@@ -66,24 +65,31 @@ void animate_shift(GtkWidget* canvas, Content* cont, uint8_t index, char code)
 	/* La animación en sí */
 	for(int i = 0; i < frames; i++)
 	{
-		cont -> offset += signum * delta;
+		pthread_mutex_lock(&drawing_mutex);
+			cont -> offset += signum * delta;
+		pthread_mutex_unlock(&drawing_mutex);
 
 		gtk_widget_queue_draw_area(canvas, start_x, start_y, width, height);
-		// gtk_widget_queue_draw(canvas);
+
 		usleep(TIMESTEP * 1000);
 	}
 
-	/* Resetear los parámetros */
-	cont -> offset = 0;
-	cont -> mode = ALL;
-
 	/* Hacer permantente el cambio de posición */
-	shift_fn(cont -> puz, index);
-	gtk_widget_queue_draw(canvas);
+	pthread_mutex_lock(&drawing_mutex);
+		cont -> offset = 0;
+		shift_fn(cont -> puz, index);
+	pthread_mutex_unlock(&drawing_mutex);
+
+	gtk_widget_queue_draw_area(canvas, start_x, start_y, width, height);
+
+	usleep(TOTALTIME * 1000);
+
+	/* Resetear los parámetros */
+	cont -> mode = ALL;
 }
 
 /** Lleva a cabo la actualización del tablero */
-void* update(void* ptr)
+static void* update(void* ptr)
 {
 	/* Desencapsula los parámetros */
 	void** param = ptr;
@@ -91,72 +97,41 @@ void* update(void* ptr)
 	Content* cont = param[1];
 	free(param);
 
-	uint8_t range[4] =
-	{
-		cont -> puz -> height,
-		cont -> puz -> width,
-		cont -> puz -> height,
-		cont -> puz -> width
-	};
+	sleep(1);
 
-	char codes[4] =
-	{
-		'R',
-		'U',
-		'L',
-		'D'
-	};
-
-
-
-
-	usleep(1000 * 1000);
-
+	char buf[32];
+	uint8_t index;
 
 	while(true)
 	{
-		int fn = rand() % 4;
-		uint8_t index = rand() % range[fn];
+		fscanf(stdin, "%s", buf) ? : abort();
 
-		animate_shift(canvas, cont, index, codes[fn]);
+		char code = buf[0];
 
-		usleep((TOTALTIME) * 1000);
+		/* Close window */
+		if(code == 'X')
+		{
+			sleep(3);
+			gtk_main_quit();
+			break;
+		}
+		/* Snapshot */
+		else if(code == 'S')
+		{
+			fscanf(stdin, "%s", buf) ? : abort();
+			drawing_snapshot(cont, buf);
+		}
+		/* Shift */
+		else if(code == 'L' || code == 'R' || code  == 'U' || code == 'D')
+		{
+			fscanf(stdin, "%hhu", &index) ? : abort();
+			animate_shift(canvas, cont, index, code);
+		}
+		else
+		{
+			abort();
+		}
 	}
-
-
-
-
-	// /* Row, Column & Value */
-	// uint8_t r, c, v;
-	//
-	//
-	//
-	// char buf[8];
-	//
-	// while(true)
-	// {
-	// 	fscanf(stdin, "%s", buf);
-	//
-	// 	if(!strcmp(buf, "SET"))
-	// 	{
-	// 		fscanf(stdin, "%hhu %hhu %hhu", &r, &c, &v);
-	// 		cont -> puz -> matrix[r][c] = v;
-	// 		gtk_widget_queue_draw(canvas);
-	// 	}
-	// 	else if(!strcmp(buf, "MOV"))
-	// 	{
-	// 		fscanf(stdin, "%hhu", &r);
-	// 		animate_shift_right(canvas, cont, r);
-	// 	}
-	// 	else if(!strcmp(buf, "END"))
-	// 	{
-	// 		break;
-	// 	}
-	// 	else
-	// 	{
-	// 		abort();
-	// 	}
-	// }
 
 	pthread_exit(NULL);
 }
