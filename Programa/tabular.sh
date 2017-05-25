@@ -22,5 +22,6 @@ echo $COLUMNS > $FILENAME
 
 # Corre el programa TIMES veces, usando cada vez una semilla distinta
 for i in $(seq 1 $TIMES); do
+	# Imprime el output del programa al final del archivo
 	./generator $i $ENTROPY $HEIGHT $WIDTH | ./untangle -s >> $FILENAME
 done
