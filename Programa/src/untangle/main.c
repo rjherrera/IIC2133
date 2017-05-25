@@ -31,6 +31,9 @@ int main(int argc, char** argv)
 	/* Cargarlo a la ventana */
 	watcher_set_initial_state(initial);
 
+	/* Imprime un pdf con el estado initial del problema */
+	watcher_snapshot("initial.pdf");
+
 	/* Resuelve el problema  */
 	clock_t start = clock();
 	Stack* stack = search(initial, solution);
@@ -46,7 +49,8 @@ int main(int argc, char** argv)
 	stack_print(stack, f);
 	fclose(f);
 
-	watcher_snapshot("test.pdf");
+	/* Imprime un pdf con el estado final del problema */
+	watcher_snapshot("final.pdf");
 
 	/* Libera memoria */
 	stack_destroy(stack);
