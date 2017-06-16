@@ -6,7 +6,7 @@
 #define TYPE "INCREMENTAL"
 #define BUCKETS 512
 #define RATIO 0.6667
-#define RATE ""
+#define RATE "DOUBLE"
 
 
 uint32_t*** numbers;
@@ -20,8 +20,19 @@ uint32_t naive_hash(Puzzle* puzzle){
             hash ^= numbers[i][j][color];
         }
     }
-    // printf("INITIAL:%u\n", hash);
     return hash;
+}
+
+
+void perfect_hash(mpz_t hash, Puzzle* puzzle){
+	mpz_init(hash);
+	for (int i = 0; i < puzzle -> height; ++i) {
+        for (int j = 0; j < puzzle -> width; ++j) {
+            uint8_t color = puzzle -> matrix[i][j];
+            mpz_mul_2exp(hash, hash, 3);
+            mpz_add_ui(hash, hash, color);
+        }
+    }
 }
 
 
@@ -29,11 +40,9 @@ int incremental_hash(Puzzle* puzzle, Cell* prev, Operation operation){
     int hash = prev -> naive_hash;
     char direction = operation_direction(operation);
     uint8_t index = operation_index(operation);
-    // printf("PREV:%u\n", hash);
     // undo prev changes (xor with prevs) and make new changes (xor with actuals)
     if (direction == 'R' || direction == 'L'){ // se esta moviendo la fila hacia algun lado
-        for (int i = 0; i < puzzle -> width; ++i) // fila fija, itero sobre columnas
-        {
+        for (int i = 0; i < puzzle -> width; ++i){ // fila fija, itero sobre columnas
             uint8_t previous_color = prev -> puzzle -> matrix[index][i];
             uint32_t previous_color_number = numbers[index][i][previous_color];
             uint8_t new_color = puzzle -> matrix[index][i];
@@ -42,23 +51,18 @@ int incremental_hash(Puzzle* puzzle, Cell* prev, Operation operation){
             hash ^= new_color_number;
             // printf("  Undo: M(%d,%d): %u -> %u\n", index, i, previous_color, previous_color_number);
             // printf("  Redo: M(%d,%d): %u -> %u\n", index, i, new_color, new_color_number);
-
         }
     }
-    else { // se esta moviendo la columna hacia algun lado
-        for (int i = 0; i < puzzle -> height; ++i) // columna fija, itero sobre filas
-        {
+    else { // se esta moviendo la columna hacia alguna altura
+        for (int i = 0; i < puzzle -> height; ++i){ // columna fija, itero sobre filas
             uint8_t previous_color = prev -> puzzle -> matrix[i][index];
             uint32_t previous_color_number = numbers[i][index][previous_color];
             uint8_t new_color = puzzle -> matrix[i][index];
             uint32_t new_color_number = numbers[i][index][new_color];
             hash ^= previous_color_number;
-            // printf("  Undo: M(%d,%d): %u -> %u\n", i, index, previous_color, previous_color_number);
             hash ^= new_color_number;
-            // printf("  Redo: M(%d,%d): %u -> %u\n", i, index, new_color, new_color_number);
         }
     }
-    // printf("INC:%u\n", hash);
     return hash;
 }
 
@@ -71,33 +75,33 @@ Cell* cell_init(Puzzle* puzzle){
 }
 
 /** Inicializa el diccionario y todo lo asociado */
-Dictionary* dictionary_init(Puzzle* initial)
-{
-    uint64_t seed = 0;
-    uint64_t seq = 0;
-    pcg32_srandom(seed, seq);
-    // TODO Inicializa el diccionario y todo lo que sea necesario guardar en el
-    numbers = malloc(initial -> height * sizeof(uint32_t**));
-    for (int i = 0; i < initial -> height; ++i){
-        numbers[i] = malloc(initial -> width * sizeof(uint32_t*));
-        for (int j = 0; j < initial -> width; ++j){
-            numbers[i][j] = malloc(8 * sizeof(uint32_t));
-            for (int k = 0; k < 8; ++k){
-                numbers[i][j][k] = pcg32_random();
-                // printf("%u\n", numbers[i][j]);
-            }
-        }
-    }
+Dictionary* dictionary_init(Puzzle* initial){
+	// TODO Inicializa el diccionario y todo lo que sea necesario guardar en el
+	if (TYPE == "INCREMENTAL"){
+	    uint64_t seed = 0;
+	    uint64_t seq = 0;
+	    pcg32_srandom(seed, seq);
+	    numbers = malloc(initial -> height * sizeof(uint32_t**));
+	    for (int i = 0; i < initial -> height; ++i){
+	        numbers[i] = malloc(initial -> width * sizeof(uint32_t*));
+	        for (int j = 0; j < initial -> width; ++j){
+	            numbers[i][j] = malloc(8 * sizeof(uint32_t));
+	            for (int k = 0; k < 8; ++k){
+	                numbers[i][j][k] = pcg32_random();
+	            }
+	        }
+	    }
+	}
     Dictionary* dict = malloc(sizeof(Dictionary));
     dict -> initial = initial;
     dict -> m = BUCKETS;
     dict -> used = 0;
     dict -> cells_array = malloc(dict -> m * sizeof(Cell*));
-    for (int i = 0; i < dict -> m; ++i) dict -> cells_array[i] = NULL;
+    for (int i = 0; i < dict -> m; ++i) dict -> cells_array[i] = NULL; // inicializar para evitar error de valgrind
     return dict;
 }
 
-/* Buscar o poner celda con encadenamiento */
+/* Buscar o poner celda con encadenamiento (argumento hash es un uint32_t) */
 Cell* find_or_place_cell(Dictionary* dict, Puzzle* state, uint32_t hash, int index){
     if (dict -> cells_array[index] == NULL){ // si no hay nadie en el primer elemento del bucket, se crea y se pone ahí
         Cell* new_cell = cell_init(state);
@@ -121,17 +125,43 @@ Cell* find_or_place_cell(Dictionary* dict, Puzzle* state, uint32_t hash, int ind
             dict -> used++;
             return new_cell;
         }
-        else {
-            // printf("AVANZO\n");
-            actual_cell = actual_cell -> next_cell; // si hay next avanzo
+        actual_cell = actual_cell -> next_cell; // si hay next avanzo
+    }
+    return NULL;
+}
+
+
+/* Buscar o poner celda con encadenamiento (argumento hash es un mpz_t) */
+Cell* find_or_place_cell_perfect(Dictionary* dict, Puzzle* state, mpz_t hash, int index){
+	if (dict -> cells_array[index] == NULL){ // si no hay nadie en el primer elemento del bucket, se crea y se pone ahí
+        Cell* new_cell = cell_init(state);
+        mpz_init_set(new_cell -> perfect_hash, hash);
+        dict -> cells_array[index] = new_cell;
+        dict -> used++;
+        return new_cell;
+    }
+    Cell* actual_cell = dict -> cells_array[index]; // sino, se toma esa celda
+    while (actual_cell != NULL){
+        if (puzzle_equals(actual_cell -> puzzle, state)){
+            return actual_cell; // si es igual la retorno
         }
+        else if (actual_cell -> next_cell == NULL){ // si no hay next, creo y la pongo
+            Cell* new_cell = cell_init(state);
+            mpz_init_set(new_cell -> perfect_hash, hash);
+            actual_cell -> next_cell = new_cell;
+            dict -> used++;
+            return new_cell;
+        }
+		actual_cell = actual_cell -> next_cell; // si hay next avanzo
     }
     return NULL;
 }
 
 
 void place_cell(Dictionary* dict, Cell* cell){
-    int index = cell -> naive_hash % dict -> m;
+	int index = 0;
+	if (TYPE == "INCREMENTAL") index = cell -> naive_hash % dict -> m;
+	else if (TYPE == "PERFECT") index = mpz_fdiv_ui(cell -> perfect_hash, dict -> m);
     if (!dict -> cells_array[index]){ // si no hay nadie en el primer elemento del bucket se pone ahí
         dict -> cells_array[index] = cell;
         dict -> used++;
@@ -162,9 +192,8 @@ bool is_prime(int number){
 
 int get_new_table_size(int m){
     int new_m;
-    if (RATE == "DOUBLE"){
+    if (RATE == "DOUBLE")
         new_m = m * 2;
-    }
     else if (RATE == "FIBONACCI"){
         new_m = m + FIB_PREVIOUS;
         FIB_PREVIOUS = m;
@@ -173,12 +202,12 @@ int get_new_table_size(int m){
         new_m = m * 2 + 1;
         while (!is_prime(new_m)) new_m++;
     }
-    else if (RATE == "TRIPLE"){
+    else if (RATE == "TRIPLE")
         new_m = m * 3;
-    }
-    else {
+    else if (RATE == "RANDOM")
+        new_m = m * (2 + pcg32_boundedrand(4));
+    else
         new_m = m * 2 + 1;
-    }
     return new_m;
 }
 
@@ -192,9 +221,8 @@ void rehash(Dictionary* dict){
     dict -> used = 0;
     free(dict -> cells_array);
     dict -> cells_array = malloc(dict -> m * sizeof(Cell*));
-    for (int i = 0; i < dict -> m; ++i) dict -> cells_array[i] = NULL;
-    for (int i = 0; i < previous_m; ++i)
-    {
+    for (int i = 0; i < dict -> m; ++i) dict -> cells_array[i] = NULL; // inicializar para evitar error de valgrind
+    for (int i = 0; i < previous_m; ++i){
         Cell* cell = temp_array[i];
         while (cell != NULL){
             Cell* actual_cell = cell;
@@ -209,30 +237,16 @@ void rehash(Dictionary* dict){
 
 
 /** Obtiene la celda en la que se guarda ese estado durante todo el programa */
-Cell* dictionary_get_cell(Dictionary* dict, Puzzle* state, Cell* prev, Operation op)
-{
+Cell* dictionary_get_cell(Dictionary* dict, Puzzle* state, Cell* prev, Operation op){
     // TODO esta es la función más importante que debes implementar
 
-    // printf("initial:%u\n", naive_hash(state));
-    // Puzzle* copied_state = puzzle_clone(state);
-    // Cell* celda = cell_init(copied_state);
-    // celda -> naive_hash = naive_hash(copied_state);
-    // printf("color_a:%u\n", state -> matrix[2][1]);
-    // puzzle_shift_left(state, 2);
-    // printf("IGUALES=%d\n", puzzle_equals(copied_state, state));
-    // printf("color_d:%u\n", state -> matrix[2][1]);
-    // Operation op2 = 0b11000000 | 2;
-    // printf("final:%u\n", incremental_hash(state, celda, op2));
-    // return NULL;
     int m = dict -> m;
-
     if (dict -> used / (float) m > RATIO){
-        printf("\nBefore rehash - Used: %d, Buckets: %d, Ratio: %f > %f\n", dict -> used, m, dict -> used / (float) m, RATIO);
+        printf("\nREHASH(start) - Used: %d, Buckets: %d, Ratio: %f > %f\n", dict -> used, m, dict -> used / (float) m, RATIO);
         rehash(dict);
-        printf("After rehash - Used: %d, Buckets: %d, Ratio: %f < %f\n", dict -> used, dict -> m, dict -> used / (float) dict -> m, RATIO);
+        printf("REHAS(end) - Used: %d, Buckets: %d, Ratio: %f < %f\n", dict -> used, dict -> m, dict -> used / (float) dict -> m, RATIO);
     }
 
-    // printf("\n--------- GET_CELL ---------\n\n");
     if (TYPE == "INCREMENTAL"){
         uint32_t hashed_puzzle;
         int index;
@@ -248,7 +262,11 @@ Cell* dictionary_get_cell(Dictionary* dict, Puzzle* state, Cell* prev, Operation
         }
     }
     else if (TYPE == "PERFECT"){
-
+    	mpz_t hash_mpz;
+		mpz_init(hash_mpz);
+		perfect_hash(hash_mpz, state);
+		int index = mpz_fdiv_ui(hash_mpz, m);
+		return find_or_place_cell_perfect(dict, state, hash_mpz, index);
     }
 
     // Existen dos casos: El estado "state" ya está en la tabla o no.
@@ -291,16 +309,15 @@ void dictionary_free(Dictionary* dict)
 		}
     }
     free(dict -> cells_array);
-    int h = dict -> initial -> height;
-    int w = dict -> initial -> width;
-    for (int i = 0; i < h; ++i)
-    {
-		for (int j = 0; j < w; ++j)
-		{
-		 	free(numbers[i][j]);
-		}
-		free(numbers[i]);
+    if (TYPE == "INCREMENTAL"){
+	    int h = dict -> initial -> height;
+	    int w = dict -> initial -> width;
+	    for (int i = 0; i < h; ++i){
+			for (int j = 0; j < w; ++j)
+				free(numbers[i][j]);
+			free(numbers[i]);
+	    }
+	    free(numbers);
     }
-    free(numbers);
     free(dict);
 }
