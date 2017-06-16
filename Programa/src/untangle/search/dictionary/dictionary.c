@@ -3,7 +3,7 @@
 #include "../../../random/pcg_basic.h"
 #include <math.h>
 
-#define TYPE "PERFECT"
+#define TYPE "INCREMENTAL"
 #define BUCKETS 512
 #define RATIO 0.6667
 #define RATE ""
@@ -307,7 +307,7 @@ void dictionary_free(Dictionary* dict)
 			Cell* prev = cell;
 			cell = cell -> next_cell;
 			puzzle_destroy(prev -> puzzle);
-			mpz_clear(prev -> perfect_hash);
+			if (TYPE == "PERFECT") mpz_clear(prev -> perfect_hash);
 			free(prev);
 		}
     }
