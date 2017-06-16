@@ -3,10 +3,10 @@
 #include "../../../random/pcg_basic.h"
 #include <math.h>
 
-#define TYPE "INCREMENTAL"
+#define TYPE "PERFECT"
 #define BUCKETS 512
 #define RATIO 0.6667
-#define RATE "DOUBLE"
+#define RATE ""
 
 
 uint32_t*** numbers;
@@ -136,6 +136,7 @@ Cell* find_or_place_cell_perfect(Dictionary* dict, Puzzle* state, mpz_t hash, in
 	if (dict -> cells_array[index] == NULL){ // si no hay nadie en el primer elemento del bucket, se crea y se pone ahí
         Cell* new_cell = cell_init(state);
         mpz_init_set(new_cell -> perfect_hash, hash);
+        mpz_clear(hash);
         dict -> cells_array[index] = new_cell;
         dict -> used++;
         return new_cell;
@@ -143,11 +144,13 @@ Cell* find_or_place_cell_perfect(Dictionary* dict, Puzzle* state, mpz_t hash, in
     Cell* actual_cell = dict -> cells_array[index]; // sino, se toma esa celda
     while (actual_cell != NULL){
         if (puzzle_equals(actual_cell -> puzzle, state)){
+        	mpz_clear(hash);
             return actual_cell; // si es igual la retorno
         }
         else if (actual_cell -> next_cell == NULL){ // si no hay next, creo y la pongo
             Cell* new_cell = cell_init(state);
             mpz_init_set(new_cell -> perfect_hash, hash);
+            mpz_clear(hash);
             actual_cell -> next_cell = new_cell;
             dict -> used++;
             return new_cell;
@@ -244,7 +247,7 @@ Cell* dictionary_get_cell(Dictionary* dict, Puzzle* state, Cell* prev, Operation
     if (dict -> used / (float) m > RATIO){
         printf("\nREHASH(start) - Used: %d, Buckets: %d, Ratio: %f > %f\n", dict -> used, m, dict -> used / (float) m, RATIO);
         rehash(dict);
-        printf("REHAS(end) - Used: %d, Buckets: %d, Ratio: %f < %f\n", dict -> used, dict -> m, dict -> used / (float) dict -> m, RATIO);
+        printf("REHASH(end) - Used: %d, Buckets: %d, Ratio: %f < %f\n", dict -> used, dict -> m, dict -> used / (float) dict -> m, RATIO);
     }
 
     if (TYPE == "INCREMENTAL"){
@@ -263,7 +266,6 @@ Cell* dictionary_get_cell(Dictionary* dict, Puzzle* state, Cell* prev, Operation
     }
     else if (TYPE == "PERFECT"){
     	mpz_t hash_mpz;
-		mpz_init(hash_mpz);
 		perfect_hash(hash_mpz, state);
 		int index = mpz_fdiv_ui(hash_mpz, m);
 		return find_or_place_cell_perfect(dict, state, hash_mpz, index);
@@ -305,6 +307,7 @@ void dictionary_free(Dictionary* dict)
 			Cell* prev = cell;
 			cell = cell -> next_cell;
 			puzzle_destroy(prev -> puzzle);
+			mpz_clear(prev -> perfect_hash);
 			free(prev);
 		}
     }
