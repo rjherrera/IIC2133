@@ -1,5 +1,5 @@
 #pragma once
-
+#include <gmp.h>
 #include "../../../puzzle/operation.h"
 #include "../info.h"
 
@@ -20,7 +20,10 @@
 struct hash_cell
 {
 	//TODO Agrega todo lo quer estimes necesario guardar en una celda aca
-
+    uint32_t naive_hash;
+    mpz_t perfect_hash;
+    Puzzle* puzzle;
+    struct hash_cell* next_cell;
 	/** Indica que esta celda ha sido recién creada */
 	bool new_cell;
 	/** La información que caracteriza a esta versión del estado */
@@ -32,7 +35,11 @@ typedef struct hash_cell Cell;
 /** Asocia un estado conocido con su información mediante una tabla de hash */
 struct hash_table
 {
-	//TODO completar esta struc para que funcione como diccionario
+	//TODO completar esta struct para que funcione como diccionario
+    int m;
+    int used;
+    Puzzle* initial;
+    Cell** cells_array;
 };
 
 /** Asocia un estado conocido con su información mediante una tabla de hash */
